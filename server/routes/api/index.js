@@ -1,5 +1,5 @@
-const tickets = require("./tickets");
-const payments = require("./payments");
+const tickets = require("../../controllers/tickets");
+const payments = require("../../controllers/payments");
 
 function api(routers) {
   routers.public.post("/tickets", tickets.post);

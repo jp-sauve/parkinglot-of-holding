@@ -1,30 +1,15 @@
 const mongoose = require("mongoose");
+const Ticket = require("./Ticket");
 const Schema = mongoose.Schema;
-
-const TicketSchema = new Schema({
-  date: {
-    type: Date,
-    default: Date.now,
-    required: [true, "Date must be included"],
-    unique: false,
-    trim: true
-  },
-  ticketNumber: {
-    type: Number,
-    required: [true, "A ticket is not a ticket without a ticket number!"],
-    min: [1, "Positive integers only"],
-    unique: true
-  }
-});
 
 const GarageSchema = new Schema({
   name: {
     type: String,
-    required: [true, "Garages must have names"],
+    required: [true, "Garages must have unique names"],
     unique: true,
     trim: true
   },
-  outstandingTickets: [TicketSchema],
+  outstandingTickets: [Ticket.ticketSchema],
   lastTicketNumber: Number,
   availableSpots: {
     type: Number,
@@ -40,4 +25,7 @@ const GarageSchema = new Schema({
   }
 });
 
-module.exports = mongoose.model("Garage", GarageSchema);
+module.exports = {
+  garageModel: mongoose.model("Garage", GarageSchema),
+  ticketModel: Ticket.ticketModel
+};
