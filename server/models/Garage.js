@@ -26,9 +26,16 @@ const GarageSchema = new Schema({
   },
   outstandingTickets: [TicketSchema],
   lastTicketNumber: Number,
-  parkingSpots: {
+  availableSpots: {
     type: Number,
-    required: [true, "Garage must account for available spots"],
+    required: [
+      true,
+      "Should be the same as totalParkingSpots when garage is created"
+    ]
+  },
+  totalParkingSpots: {
+    type: Number,
+    required: [true, "Garage must have a measured number of spots"],
     unique: false
   }
 });

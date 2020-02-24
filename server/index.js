@@ -1,5 +1,6 @@
 const appRoot = require("app-root-path");
 const express = require("express");
+const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 
@@ -15,10 +16,15 @@ connectDB();
 const app = express();
 app.use(express.static(`${appRoot}/public`));
 app.use(express.static(`${appRoot}/public/dist`));
+app.use(bodyParser.json({ extended: true }));
+
 routes(app);
 
 const PORT = process.env.PORT;
-const server = app.listen(PORT);
+const server = app.listen(PORT, function() {
+  // Check database for garage matching environment vars or create a new one now
+  console.log("Validating garage details...");
+});
 
 if (process.env.NODE_ENV === "development") {
   console.log(`Server running on: localhost:${PORT}`);
