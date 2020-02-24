@@ -5,6 +5,7 @@ const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 
 const routes = require("./routes");
+const g = require("./controllers/garages");
 
 // Get environment vars and print errors
 const envReturn = dotenv.config({ path: "server/config/config.env" });
@@ -24,6 +25,7 @@ const PORT = process.env.PORT;
 const server = app.listen(PORT, function() {
   // Check database for garage matching environment vars or create a new one now
   console.log("Validating garage details...");
+  g.setup();
 });
 
 if (process.env.NODE_ENV === "development") {
