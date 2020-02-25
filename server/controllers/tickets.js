@@ -1,15 +1,22 @@
 const Garage = require("../models/Garage").garageModel;
-const { minutesBetween, fullHours, rate } = require("../utils/time");
+const chalk = require("chalk");
+const verbose = true; // Would normally handle with yargs
+const {
+  minutesBetween,
+  fullHours,
+  rate,
+  entranceIsBeforeExit
+} = require("../utils/time");
+
 /**
  *
  * @description Return the total currently owed on the ticket
- * @param {request} req - Request object
- * @param {response} res - Response object
+ * @param {Request} req - Request object
+ * @param {Response} res - Response object
  */
 async function get(req, res) {
   // Get ticket from database to check time. return 404 if it's not there
   const garage = await Garage.find({ name: process.env.GARAGE_NAME });
-  const leaveAfterEnter = (d1, d2) => d1 <= d2;
 
   if (garage.length > 0) {
     const now = new Date().getTime();
@@ -18,7 +25,8 @@ async function get(req, res) {
       ticket => ticket.ticketNumber == req.params.ticketNumber
     );
 
-    if (tickets.length && leaveAfterEnter(tickets[0].timestamp, now)) {
+    // Only continue if there's a ticket that makes sense
+    if (tickets.length && entranceIsBeforeExit(tickets[0].timestamp, now)) {
       const ticket = tickets.pop();
       const times = [ticket.timestamp, now];
 
@@ -47,11 +55,10 @@ async function get(req, res) {
 
 /**
  * @description Get parking ticket if available
- * @param {*} req Request object
- * @param {*} res Response object
+ * @param {Request} req Request object
+ * @param {Response} res Response object
  */
 async function post(req, res) {
-  console.log("Getting new ticket...");
   const garage = await Garage.find({ name: process.env.GARAGE_NAME });
   if (garage.length > 0) {
     let ourGarage = garage[0];
@@ -61,12 +68,22 @@ async function post(req, res) {
         timestamp: new Date().getTime(),
         ticketNumber: ourGarage.lastTicketNumber + 1
       };
+      if (verbose) {
+        console.log(
+          `${chalk.green.bold("Checking in:")} ${chalk.white.bold(
+            newTicket.ticketNumber
+          )}\n${chalk.white.dim("Spaces available: ")}${chalk.green.dim(
+            ourGarage.availableSpots
+          )}`
+        );
+      }
       ourGarage.outstandingTickets.push(newTicket);
       ourGarage.lastTicketNumber = ourGarage.lastTicketNumber + 1;
       ourGarage.availableSpots = ourGarage.availableSpots - 1;
       await ourGarage.save();
       res.status(201).json({ success: true, data: newTicket });
     } else {
+      if (verbose) console.log(`${chalk.red.bold("Checkin rejected, lot full")}`);
       res.status(400).json({
         success: false,
         message: "Lot full. We're sorry for the inconvenience."
