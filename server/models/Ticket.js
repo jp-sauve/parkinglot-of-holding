@@ -2,9 +2,9 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const TicketSchema = new Schema({
-  date: {
-    type: Date,
-    default: Date.now,
+  timestamp: {
+    type: Number,
+    required: true,
     unique: false,
     trim: true
   },
