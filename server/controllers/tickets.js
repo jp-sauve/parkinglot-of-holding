@@ -1,14 +1,50 @@
 const Garage = require("../models/Garage").garageModel;
+const { minutesBetween, fullHours, rate } = require("../utils/time");
+/**
+ *
+ * @description Return the total currently owed on the ticket
+ * @param {request} req - Request object
+ * @param {response} res - Response object
+ */
+async function get(req, res) {
+  // Get ticket from database to check time. return 404 if it's not there
+  const garage = await Garage.find({ name: process.env.GARAGE_NAME });
+  const leaveAfterEnter = (d1, d2) => d1 <= d2;
 
-function get(req, res) {
-  // calculate amount owing
-  res.status(200).json({
-    requestedNumber: req.params.ticketNumber,
-    enter: "timestamp",
-    depart: "timestamp",
-    cost: "dollars"
-  });
+  if (garage.length > 0) {
+    const now = new Date().getTime();
+    const ourGarage = garage[0];
+    const tickets = ourGarage.outstandingTickets.filter(
+      ticket => ticket.ticketNumber == req.params.ticketNumber
+    );
+
+    if (tickets.length && leaveAfterEnter(tickets[0].timestamp, now)) {
+      const ticket = tickets.pop();
+      const times = [ticket.timestamp, now];
+
+      // Send ticket and calculated costs to front-end
+      res.status(200).json({
+        success: true,
+        ticket,
+        arrival: new Date(times[0]).toLocaleString(),
+        departure: new Date(times[1]).toLocaleString(),
+        minutes: minutesBetween(...times),
+        wholeHours: fullHours(minutesBetween(...times)),
+        rateLevel: rate(...times)
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: "Ticket not found"
+      });
+    }
+  } else {
+    res.status(500).json({
+      success: false
+    });
+  }
 }
+
 /**
  * @description Get parking ticket if available
  * @param {*} req Request object
@@ -20,15 +56,16 @@ async function post(req, res) {
   if (garage.length > 0) {
     let ourGarage = garage[0];
     if (ourGarage.availableSpots > 0) {
-      console.log(ourGarage.availableSpots, "spots are available");
-      ourGarage.outstandingTickets.push({
-        date: new Date(),
+      // Add ticket to checked-in array, set counters, and save
+      const newTicket = {
+        timestamp: new Date().getTime(),
         ticketNumber: ourGarage.lastTicketNumber + 1
-      });
+      };
+      ourGarage.outstandingTickets.push(newTicket);
       ourGarage.lastTicketNumber = ourGarage.lastTicketNumber + 1;
       ourGarage.availableSpots = ourGarage.availableSpots - 1;
-      const savedRecord = await ourGarage.save();
-      res.status(201).json({ success: true, data: savedRecord });
+      await ourGarage.save();
+      res.status(201).json({ success: true, data: newTicket });
     } else {
       res.status(400).json({
         success: false,
@@ -41,10 +78,6 @@ async function post(req, res) {
       message: "No garage was found, so all is not well!"
     });
   }
-  // Check if garage availableSpots < totalParkingSpots
-  // If so, create new ticket using garage's lastTicketNumber + 1,
-  // increment garage's lastTicketNumber and decrement availableSpots,
-  // add ticket to outstandingTickets, return ticket
 }
 
 module.exports = {
