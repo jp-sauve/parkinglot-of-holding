@@ -5,6 +5,8 @@ const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 
 const routes = require("./routes");
+const apiSentry = require("./apiSentry");
+
 const g = require("./controllers/garages");
 
 // Get environment vars and print errors
@@ -19,13 +21,13 @@ app.use(express.static(`${appRoot}/public`));
 app.use(express.static(`${appRoot}/public/dist`));
 app.use(bodyParser.json({ extended: true }));
 
-routes(app);
+routes(app, apiSentry);
 
 const PORT = process.env.PORT;
 const server = app.listen(PORT, function() {
   // Check database for garage matching environment vars or create a new one now
   console.log("Validating garage details...");
-  g.setup();
+  g.setup(app);
 });
 
 if (process.env.NODE_ENV === "development") {
@@ -35,10 +37,10 @@ if (process.env.NODE_ENV === "development") {
 }
 
 // Unhandled rejections are a cause for server failure. They must be fixed.
-process.on("unhandledRejection", (reason, promise) => {
-  console.log("\nOh no boss!", reason.message);
-  console.log(promise);
-  server.close(() => process.exit(1));
-});
+// process.on("unhandledRejection", (reason, promise) => {
+//   console.log("\nOh no boss!", reason.message);
+//   console.log(promise);
+//   server.close(() => process.exit(1));
+// });
 
 module.exports = app;
