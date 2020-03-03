@@ -18,7 +18,7 @@ async function get(req, res) {
   // Get ticket from database to check time. return 404 if it's not there
   const garage = await Garage.find({ name: process.env.GARAGE_NAME });
 
-  if (garage.length > 0) {
+  if (req.app.locals.saneConfig) {
     const now = new Date().getTime();
     const ourGarage = garage[0];
     const tickets = ourGarage.outstandingTickets.filter(
@@ -68,6 +68,10 @@ async function post(req, res) {
         timestamp: new Date().getTime(),
         ticketNumber: ourGarage.lastTicketNumber + 1
       };
+      ourGarage.outstandingTickets.push(newTicket);
+      ourGarage.lastTicketNumber = ourGarage.lastTicketNumber + 1;
+      ourGarage.availableSpots = ourGarage.availableSpots - 1;
+      await ourGarage.save();
       if (verbose) {
         console.log(
           `${chalk.green.bold("Checking in:")} ${chalk.white.bold(
@@ -77,13 +81,11 @@ async function post(req, res) {
           )}`
         );
       }
-      ourGarage.outstandingTickets.push(newTicket);
-      ourGarage.lastTicketNumber = ourGarage.lastTicketNumber + 1;
-      ourGarage.availableSpots = ourGarage.availableSpots - 1;
-      await ourGarage.save();
       res.status(201).json({ success: true, data: newTicket });
     } else {
-      if (verbose) console.log(`${chalk.red.bold("Checkin rejected, lot full")}`);
+      if (verbose) {
+        console.log(`${chalk.red.bold("Checkin rejected, lot full")}`);
+      }
       res.status(400).json({
         success: false,
         message: "Lot full. We're sorry for the inconvenience."

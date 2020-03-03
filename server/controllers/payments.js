@@ -1,5 +1,6 @@
 function post(req, res) {
   // I'm not going to validate the post data for time reasons
+  console.log("Request Timestamp: ", req.reqTime);
   // I'd likely be using Stripe
   console.log("Params: ", req.params);
   console.log("Request body: ", Object.keys(req.body));
